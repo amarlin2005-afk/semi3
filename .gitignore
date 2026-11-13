@@ -1,0 +1,60 @@
+# ===== Unity が自動で作り直すフォルダ（アップロード不要） =====
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+
+# Unity Recorder の書き出し先（動画は重いので除外）
+/[Rr]ecordings/
+
+# Assets 内の .meta は必ずアップロードする
+!/[Aa]ssets/**/*.meta
+
+# ===== エディタが自動生成するファイル =====
+.vs/
+.vscode/
+.idea/
+.gradle/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# ===== ビルド・クラッシュレポート =====
+sysinfo.txt
+crashlytics-build.properties
+*.apk
+*.aab
+*.app
+*.unitypackage
+
+# ===== Unity Version Control（Plastic）を使わない場合 =====
+.plastic/
+ignore.conf
+
+# ===== OS が作るファイル =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ※ ScrollTakes（なぞった記録）は作品のデータなので、あえて除外していません
