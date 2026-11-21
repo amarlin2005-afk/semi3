@@ -323,7 +323,7 @@ MonoBehaviour:
   firstBarOffsetSec: 0
   pages:
   - title: 
-    lyricImage: {fileID: 0}
+    lyricImage: {fileID: 2800000, guid: 42ac1f0e070ba654989f17d06446b1a3, type: 3}
     lyric: 
     startBar: 0
     lengthBars: 0
