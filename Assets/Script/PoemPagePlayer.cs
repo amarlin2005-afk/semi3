@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -36,6 +37,10 @@ public class PoemStem
     public string midiTrackName;
     [Tooltip("ノートがあるトラックの何番目か（1から）。0なら全トラックをまとめて使う")]
     public int midiTrackNumber;
+    [Tooltip("音源を曲の途中から書き出した場合、その書き出しの頭が何小節目か（曲の頭から書き出したなら1）")]
+    public int clipStartBar = 1;
+    [Tooltip("MIDIを曲の途中から書き出した場合、その書き出しの頭が何小節目か（曲の頭から書き出したなら1）")]
+    public int midiStartBar = 1;
     [Tooltip("そのページにノートがないとき、この段を隠す（ハモリ用）")]
     public bool hideWhenNoNotes;
     public bool mute;
@@ -95,6 +100,9 @@ public class PoemPagePlayer : MonoBehaviour
     [Tooltip("曲の頭から、1小節目の1拍目までの秒数（アウフタクトがあるならその長さ）")]
     public float firstBarOffsetSec = 0f;
 
+    [Tooltip("テンポの変化を読み取るMIDI（DAWから書き出したもの）。空なら段のMIDIから自動で探す。見つからなければ上のBPMで一定")]
+    public TextAsset tempoMidi;
+
     [Header("ページ（空のまま再生すると、8小節ごとに自動で作られる）")]
     public List<PoemPage> pages = new List<PoemPage>();
 
@@ -117,6 +125,10 @@ public class PoemPagePlayer : MonoBehaviour
     public int exportHeight = 512;
     public Color exportColor = Color.black;
 
+    [Header("確認用")]
+    [Tooltip("画面右下に、音の時計と出力の状態を表示する（動作確認が終わったらオフに）")]
+    public bool showAudioDebug = true;
+
     [Header("操作")]
     [Tooltip("Xbox系はAボタンが下、Switch系はAボタンが右")]
     public ButtonLayout buttonLayout = ButtonLayout.Xbox;
@@ -129,8 +141,10 @@ public class PoemPagePlayer : MonoBehaviour
     int TexW = 1024, TexH = 128;
     int Thick => Mathf.Max(1, TexH / 128);
 
-    class MidiNote { public float start, end; public int pitch; }
+    class MidiNote { public double q0, q1; public float start, end; public int pitch; }
     class MidiTrack { public string name; public List<MidiNote> notes = new List<MidiNote>(); }
+    class TempoEvent { public double q, secPerQ; }
+    struct TempoSeg { public double q, sec, secPerQ; }
 
     AudioSource[,] srcs;
     int[] flip;
@@ -142,11 +156,15 @@ public class PoemPagePlayer : MonoBehaviour
     Texture2D[,] rowTex;
     bool[,] rowVisible;
     float[] axisStart, axisEnd;
+    double[] axisQ0, axisQ1;   // 画面の横軸は「拍」で取る（テンポが揺れても小節が等間隔に並ぶ）
     readonly Dictionary<TextAsset, List<MidiTrack>> midiCache = new Dictionary<TextAsset, List<MidiTrack>>();
+    readonly Dictionary<TextAsset, List<TempoEvent>> midiTempo = new Dictionary<TextAsset, List<TempoEvent>>();
+    List<TempoSeg> tempoMap;
+    bool tempoBuilt;
 
     Font font;
     RawImage lyricImg;
-    Text lyricText, pageText, pendingText;
+    Text lyricText, pageText, pendingText, debugText;
     RectTransform gridRoot;
     Image playhead;
     readonly List<RectTransform> rowRoots = new List<RectTransform>();
@@ -156,19 +174,47 @@ public class PoemPagePlayer : MonoBehaviour
     readonly List<Image> highlights = new List<Image>();
 
     float BeatSec => 60f / Mathf.Max(1f, bpm);
-    float BarSec => BeatSec * Mathf.Max(1, beatsPerBar);
-    float BarTime(int bar) => firstBarOffsetSec + (bar - 1) * BarSec;
-    float PageLen(int i) => Mathf.Max(1, pages[i].lengthBars) * BarSec;
+    // 小節・拍 → 曲の頭からの秒数。MIDIにテンポの変化があれば、それに沿って計算する
+    float BeatTime(int bar, float beats) => firstBarOffsetSec + (float)QToSec((bar - 1) * (double)Mathf.Max(1, beatsPerBar) + beats);
+    float BarTime(int bar) => BeatTime(bar, 0f);
+    float PageLen(int i) => BarTime(pages[i].startBar + Mathf.Max(1, pages[i].lengthBars)) - BarTime(pages[i].startBar);
 
-    void Start()
+    bool ready;
+
+    const string Version = "2026-11-23 確認用";
+
+    IEnumerator Start()
     {
+        Debug.Log("PoemPagePlayer 起動（版：" + Version + "）　段の数 " + stems.Count + "　ページ数 " + pages.Count);
+
+        // 音のデータの読み込みが終わるまで待つ（Preload Audio Data がオフでも動くように）
+        foreach (var st in stems)
+            if (st.clip != null && st.clip.loadState != AudioDataLoadState.Loaded) st.clip.LoadAudioData();
+        float waited = 0f;
+        while (waited < 15f)
+        {
+            bool loading = false;
+            foreach (var st in stems)
+                if (st.clip != null && st.clip.loadState == AudioDataLoadState.Loading) loading = true;
+            if (!loading) break;
+            waited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        foreach (var st in stems)
+            if (st.clip != null && st.clip.loadState != AudioDataLoadState.Loaded)
+                Debug.LogWarning("「" + st.name + "」の音源を読み込めませんでした（状態：" + st.clip.loadState + "）");
+
+        tempoBuilt = false;
+        BuildTempoMap(true);
+
         if (pages.Count == 0) GeneratePages();
         if (pages.Count == 0 || stems.Count == 0)
         {
             Debug.LogError("段に音源を入れて、ページを用意してください。");
             enabled = false;
-            return;
+            yield break;
         }
+        FillEmptyBars(false);
 
         srcs = new AudioSource[stems.Count, 2];
         flip = new int[stems.Count];
@@ -192,6 +238,7 @@ public class PoemPagePlayer : MonoBehaviour
         ScheduleIteration(0, first);
         nextIterStart = first + PageLen(0);
         ShowPage(0);
+        ready = true;
     }
 
     // ---- 自動でページを作る ----
@@ -209,12 +256,44 @@ public class PoemPagePlayer : MonoBehaviour
 #if UNITY_EDITOR
         UnityEditor.Undo.RecordObject(this, "ページを自動作成");
 #endif
-        int bars = Mathf.FloorToInt((len - firstBarOffsetSec) / BarSec + 0.001f);
+        tempoBuilt = false;
+        int bars = 0;
+        while (bars < 10000 && BarTime(bars + 2) <= len + 0.001f) bars++;
         pages.Clear();
         for (int b = 1; b <= bars; b += 8)
             pages.Add(new PoemPage { title = "ページ" + (pages.Count + 1), startBar = b, lengthBars = Mathf.Min(8, bars - b + 1) });
 #if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(this);
+#endif
+    }
+
+    [ContextMenu("小節が0のページを埋める（歌詞画像は残す）")]
+    void FillEmptyBarsMenu() => FillEmptyBars(true);
+
+    // Start Bar や Length Bars が 0 のページに、前のページの続きから8小節を割り当てる
+    void FillEmptyBars(bool save)
+    {
+#if UNITY_EDITOR
+        if (save) UnityEditor.Undo.RecordObject(this, "小節を埋める");
+#endif
+        int fixedCount = 0;
+        for (int i = 0; i < pages.Count; i++)
+        {
+            var p = pages[i];
+            bool changed = false;
+            if (p.lengthBars <= 0) { p.lengthBars = 8; changed = true; }
+            if (p.startBar <= 0)
+            {
+                p.startBar = i == 0 ? 1 : pages[i - 1].startBar + pages[i - 1].lengthBars;
+                changed = true;
+            }
+            if (changed) fixedCount++;
+        }
+        if (fixedCount > 0)
+            Debug.LogWarning(fixedCount + "ページの Start Bar / Length Bars が0だったので、8小節ずつ自動で割り当てました。" +
+                             (save ? "" : "　残すには、再生を止めてから ⋮ →「小節が0のページを埋める」を実行してください。"));
+#if UNITY_EDITOR
+        if (save) UnityEditor.EditorUtility.SetDirty(this);
 #endif
     }
 
@@ -226,6 +305,7 @@ public class PoemPagePlayer : MonoBehaviour
         if (pages.Count == 0) GeneratePages();
         if (pages.Count == 0) return;
 
+        tempoBuilt = false;
         int oldW = TexW, oldH = TexH;
         var oldTex = rowTex;
         TexW = Mathf.Max(64, exportWidth);
@@ -283,20 +363,20 @@ public class PoemPagePlayer : MonoBehaviour
         float m = 0f;
         foreach (var p in pages)
             foreach (var w in p.stemWindows)
-                if (w.startOffsetBeats < 0f) m = Mathf.Max(m, -w.startOffsetBeats * BeatSec);
+                if (w.startOffsetBeats < 0f) m = Mathf.Max(m, BarTime(p.startBar) - BeatTime(p.startBar, w.startOffsetBeats));
         return m;
     }
 
     void GetWindow(PoemPage page, int stemIdx, out float ws, out float we)
     {
-        float start = BarTime(page.startBar);
-        ws = start;
-        we = start + Mathf.Max(1, page.lengthBars) * BarSec;
+        int endBar = page.startBar + Mathf.Max(1, page.lengthBars);
+        ws = BarTime(page.startBar);
+        we = BarTime(endBar);
         foreach (var w in page.stemWindows)
         {
             if (w.stemNumber - 1 != stemIdx) continue;
-            ws += w.startOffsetBeats * BeatSec;
-            we += w.endOffsetBeats * BeatSec;
+            ws = BeatTime(page.startBar, w.startOffsetBeats);
+            we = BeatTime(endBar, w.endOffsetBeats);
         }
     }
 
@@ -310,10 +390,18 @@ public class PoemPagePlayer : MonoBehaviour
         for (int s = 0; s < stems.Count; s++)
         {
             var clip = stems[s].clip;
-            if (clip == null) continue;
+            if (clip == null)
+            {
+                if (!loggedFirstSchedule) Debug.Log("予約「" + stems[s].name + "」 音源なしのためスキップ");
+                continue;
+            }
 
             GetWindow(page, s, out float ws, out float we);
             double dspStart = boundary + (ws - pageStart);
+            // 曲の時刻 → この音源ファイルの中の時刻（途中から書き出した音源のぶんずらす）
+            float off = ClipOffset(s);
+            ws -= off;
+            we -= off;
             if (ws < 0f) { dspStart += -ws; ws = 0f; }
             we = Mathf.Min(we, clip.length);
             if (we <= ws) continue;
@@ -326,11 +414,20 @@ public class PoemPagePlayer : MonoBehaviour
             a.mute = stems[s].mute;
             a.PlayScheduled(dspStart);
             a.SetScheduledEndTime(dspStart + (we - ws));
+
+            if (!loggedFirstSchedule)
+                Debug.Log("予約「" + stems[s].name + "」 " + ws.ToString("0.00") + "〜" + we.ToString("0.00") + "秒　開始まで " +
+                          (dspStart - AudioSettings.dspTime).ToString("0.00") + "秒　読み込み " + clip.loadState +
+                          "　isPlaying " + a.isPlaying + "　enabled " + a.isActiveAndEnabled);
         }
+        loggedFirstSchedule = true;
     }
+
+    bool loggedFirstSchedule;
 
     void Update()
     {
+        if (!ready) return;
         HandleInput();
 
         for (int s = 0; s < stems.Count; s++)
@@ -407,6 +504,25 @@ public class PoemPagePlayer : MonoBehaviour
 
     List<MidiNote> GetNotes(PoemStem st)
     {
+        var src = SelectNotes(st);
+        if (src == null) return null;
+        // 途中から書き出したMIDIは、その小節のぶん後ろにずらしてから秒に直す
+        double offQ = (Mathf.Max(1, st.midiStartBar) - 1) * (double)Mathf.Max(1, beatsPerBar);
+        var list = new List<MidiNote>(src.Count);
+        foreach (var n in src)
+            list.Add(new MidiNote
+            {
+                q0 = n.q0 + offQ,
+                q1 = n.q1 + offQ,
+                pitch = n.pitch,
+                start = (float)QToSec(n.q0 + offQ) + midiOffsetSec,
+                end = (float)QToSec(n.q1 + offQ) + midiOffsetSec
+            });
+        return list;
+    }
+
+    List<MidiNote> SelectNotes(PoemStem st)
+    {
         if (st.midi == null) return null;
         var tracks = GetTracks(st.midi);
         if (tracks == null || tracks.Count == 0) return null;
@@ -426,14 +542,80 @@ public class PoemPagePlayer : MonoBehaviour
         }
         var all = new List<MidiNote>();
         foreach (var t in tracks) all.AddRange(t.notes);
-        all.Sort((a, b) => a.start.CompareTo(b.start));
+        all.Sort((a, b) => a.q0.CompareTo(b.q0));
         return all;
+    }
+
+    // ---- テンポマップ（テンポが途中で変わる曲のため） ----
+
+    void BuildTempoMap(bool log)
+    {
+        tempoBuilt = true;
+        tempoMap = null;
+        var candidates = new List<TextAsset>();
+        if (tempoMidi != null) candidates.Add(tempoMidi);
+        foreach (var st in stems) if (st.midi != null && !candidates.Contains(st.midi)) candidates.Add(st.midi);
+
+        foreach (var c in candidates)
+        {
+            GetTracks(c);
+            if (!midiTempo.TryGetValue(c, out var ev) || ev.Count == 0) continue;
+            ev.Sort((a, b) => a.q.CompareTo(b.q));
+            var map = new List<TempoSeg> { new TempoSeg { q = 0, sec = 0, secPerQ = ev[0].q <= 0.0001 ? ev[0].secPerQ : 60.0 / Mathf.Max(1f, bpm) } };
+            foreach (var e in ev)
+            {
+                if (e.q <= 0.0001) continue;
+                var last = map[map.Count - 1];
+                map.Add(new TempoSeg { q = e.q, sec = last.sec + (e.q - last.q) * last.secPerQ, secPerQ = e.secPerQ });
+            }
+            tempoMap = map;
+            if (log)
+            {
+                double minBpm = double.MaxValue, maxBpm = 0;
+                foreach (var m in map) { double b = 60.0 / m.secPerQ; minBpm = Math.Min(minBpm, b); maxBpm = Math.Max(maxBpm, b); }
+                Debug.Log("テンポを MIDI「" + c.name + "」から読み取りました：変化 " + map.Count + " 箇所、BPM " + minBpm.ToString("0.#") + "〜" + maxBpm.ToString("0.#"));
+            }
+            return;
+        }
+        if (log) Debug.Log("MIDIにテンポの情報が見つからなかったので、BPM " + bpm + " で一定として計算します。");
+    }
+
+    // 曲の頭からの秒数 → 四分音符いくつ目か（QToSec の逆）
+    double SecToQ(double sec)
+    {
+        if (!tempoBuilt) BuildTempoMap(false);
+        if (tempoMap == null) return sec / (60.0 / Mathf.Max(1f, bpm));
+        var seg = tempoMap[0];
+        for (int i = 1; i < tempoMap.Count && tempoMap[i].sec <= sec; i++) seg = tempoMap[i];
+        return seg.q + (sec - seg.sec) / seg.secPerQ;
+    }
+
+    double SongSecToQ(double t) => SecToQ(t - firstBarOffsetSec);
+    double QToSongSec(double q) => firstBarOffsetSec + QToSec(q);
+
+    // 曲の時刻 t が、ページ p の横軸のどこ（0〜1）にあたるか
+    float AxisFrac(float t, int p)
+    {
+        double span = axisQ1[p] - axisQ0[p];
+        return span > 0 ? (float)((SongSecToQ(t) - axisQ0[p]) / span) : -1f;
+    }
+
+    // 四分音符いくつ目か → 曲の頭からの秒数
+    double QToSec(double q)
+    {
+        if (!tempoBuilt) BuildTempoMap(false);
+        if (tempoMap == null) return q * 60.0 / Mathf.Max(1f, bpm);
+        var seg = tempoMap[0];
+        for (int i = 1; i < tempoMap.Count && tempoMap[i].q <= q; i++) seg = tempoMap[i];
+        return seg.sec + (q - seg.q) * seg.secPerQ;
     }
 
     List<MidiTrack> GetTracks(TextAsset asset)
     {
         if (midiCache.TryGetValue(asset, out var cached)) return cached;
-        var parsed = ParseMidi(asset.bytes);
+        var tempos = new List<TempoEvent>();
+        var parsed = ParseMidi(asset.bytes, tempos);
+        midiTempo[asset] = tempos;
         if (parsed == null) Debug.LogWarning("MIDI「" + asset.name + "」を読み取れませんでした。");
         midiCache[asset] = parsed;
         return parsed;
@@ -454,6 +636,8 @@ public class PoemPagePlayer : MonoBehaviour
 
         axisStart = new float[P];
         axisEnd = new float[P];
+        axisQ0 = new double[P];
+        axisQ1 = new double[P];
         rowVisible = new bool[P, S];
         var peaks = new float[P, S][];
         var stemMax = new float[S];
@@ -474,6 +658,8 @@ public class PoemPagePlayer : MonoBehaviour
             }
             axisStart[p] = a0;
             axisEnd[p] = a1;
+            axisQ0[p] = SongSecToQ(a0);
+            axisQ1[p] = SongSecToQ(a1);
 
             for (int s = 0; s < S; s++)
             {
@@ -522,14 +708,19 @@ public class PoemPagePlayer : MonoBehaviour
         }
     }
 
+    // 途中から書き出した音源の頭が、曲の何秒目にあたるか
+    float ClipOffset(int s) => stems[s].clipStartBar > 1 ? BarTime(stems[s].clipStartBar) : 0f;
+
     float[] ComputePeaks(int s, int p, float a0, float a1)
     {
         var clip = stems[s].clip;
         if (clip == null) return null;
         GetWindow(pages[p], s, out float ws, out float we);
-        ws = Mathf.Max(0f, ws);
-        we = Mathf.Min(we, clip.length);
+        float off = ClipOffset(s);
+        ws = Mathf.Max(0f, ws - off);
+        we = Mathf.Min(we - off, clip.length);
         if (we <= ws) return null;
+        double qa0 = SongSecToQ(a0), qa1 = SongSecToQ(a1);
 
         int freq = clip.frequency, ch = clip.channels;
         int offset = (int)(ws * freq);
@@ -546,8 +737,9 @@ public class PoemPagePlayer : MonoBehaviour
         var result = new float[TexW];
         for (int x = 0; x < TexW; x++)
         {
-            float t0 = a0 + (a1 - a0) * x / TexW;
-            float t1 = a0 + (a1 - a0) * (x + 1) / TexW;
+            // 横軸は拍。1列ぶんの拍の範囲を、音源ファイルの中の秒に直す
+            float t0 = (float)QToSongSec(qa0 + (qa1 - qa0) * x / TexW) - off;
+            float t1 = (float)QToSongSec(qa0 + (qa1 - qa0) * (x + 1) / TexW) - off;
             int f0 = Mathf.Clamp((int)((t0 - ws) * freq), 0, frames);
             int f1 = Mathf.Clamp((int)((t1 - ws) * freq), 0, frames);
             if (f1 <= f0) continue;
@@ -576,7 +768,8 @@ public class PoemPagePlayer : MonoBehaviour
     void DrawMidi(Color32[] px, List<MidiNote> notes, float ws, float we, float a0, float a1, int lo, int hi)
     {
         float margin = TexH * 0.1f;
-        int X(float t) => Mathf.RoundToInt((t - a0) / (a1 - a0) * (TexW - 1));
+        double q0 = SongSecToQ(a0), q1 = SongSecToQ(a1);
+        int X(float t) => Mathf.RoundToInt((float)((SongSecToQ(t) - q0) / (q1 - q0)) * (TexW - 1));
         int Y(int pitch) => Mathf.RoundToInt(margin + (float)(pitch - lo) / (hi - lo) * (TexH - margin * 2f));
 
         MidiNote prev = null;
@@ -611,7 +804,7 @@ public class PoemPagePlayer : MonoBehaviour
 
     // ---- MIDIファイルの読み取り（標準MIDIファイルの最小限の解析） ----
 
-    List<MidiTrack> ParseMidi(byte[] d)
+    List<MidiTrack> ParseMidi(byte[] d, List<TempoEvent> tempos)
     {
         try
         {
@@ -647,6 +840,11 @@ public class PoemPagePlayer : MonoBehaviour
                         int type = d[pos++];
                         int mlen = (int)ReadVar(d, ref pos);
                         if (type == 0x03 && track.name == null) track.name = Encoding.UTF8.GetString(d, pos, mlen);
+                        if (type == 0x51 && mlen == 3)
+                        {
+                            int usPerQ = (d[pos] << 16) | (d[pos + 1] << 8) | d[pos + 2];
+                            tempos.Add(new TempoEvent { q = (double)tick / division, secPerQ = usPerQ / 1000000.0 });
+                        }
                         pos += mlen;
                     }
                     else if (status == 0xF0 || status == 0xF7)
@@ -681,7 +879,7 @@ public class PoemPagePlayer : MonoBehaviour
                 pos = end;
                 if (track.notes.Count > 0)
                 {
-                    track.notes.Sort((a, b) => a.start.CompareTo(b.start));
+                    track.notes.Sort((a, b) => a.q0.CompareTo(b.q0));
                     tracks.Add(track);
                 }
             }
@@ -699,8 +897,8 @@ public class PoemPagePlayer : MonoBehaviour
         if (endTick <= startTick) return;
         notes.Add(new MidiNote
         {
-            start = (float)startTick / division * BeatSec + midiOffsetSec,
-            end = (float)endTick / division * BeatSec + midiOffsetSec,
+            q0 = (double)startTick / division,
+            q1 = (double)endTick / division,
             pitch = pitch
         });
     }
@@ -807,6 +1005,7 @@ public class PoemPagePlayer : MonoBehaviour
 
         pageText = MakeText(root, "PageInfo", 40f, 20f, 900f, 36f, 24, TextAnchor.UpperLeft);
         pendingText = MakeText(root, "Pending", 40f, 56f, 900f, 36f, 22, TextAnchor.UpperLeft);
+        debugText = MakeText(root, "AudioDebug", 1020f, 20f, 860f, 36f, 20, TextAnchor.UpperRight);
     }
 
     void ShowPage(int p)
@@ -869,7 +1068,7 @@ public class PoemPagePlayer : MonoBehaviour
         {
             float t = BarTime(page.startBar + b);
             if (t < a0 || t > a1) continue;
-            float x = (t - a0) / (a1 - a0) * RowsW;
+            float x = AxisFrac(t, p) * RowsW;
             MakeImage(gridRoot, "Bar", x - 1f, 0f, 2f, rowsH, lineCol);
         }
         playhead.rectTransform.sizeDelta = new Vector2(2f, rowsH + 12f);
@@ -890,6 +1089,14 @@ public class PoemPagePlayer : MonoBehaviour
             highlights[s].color = sel ? new Color(inkColor.r, inkColor.g, inkColor.b, 0.05f) : Color.clear;
         }
 
+        if (showAudioDebug)
+        {
+            int playing = 0;
+            foreach (var a in srcs) if (a.isPlaying) playing++;
+            debugText.text = "音の時計 " + now.ToString("0.00") + "秒　出力 " + AudioSettings.outputSampleRate + "Hz　再生中 " + playing;
+        }
+        else debugText.text = "";
+
         int waiting = pendingPage >= 0 ? pendingPage : (nextDecided && upcomingPage != currentPage ? upcomingPage : -1);
         pendingText.text = waiting >= 0 ? "→ ページ " + (waiting + 1) + " へ（このフレーズを読み終えてから）" : "";
 
@@ -897,7 +1104,7 @@ public class PoemPagePlayer : MonoBehaviour
         double iterStart = nextIterStart - PageLen(currentPage);
         float songT = BarTime(page.startBar) + (float)(now - iterStart);
         float a0 = axisStart[currentPage], a1 = axisEnd[currentPage];
-        float frac = (songT - a0) / (a1 - a0);
+        float frac = AxisFrac(songT, currentPage);
         playhead.enabled = frac >= 0f && frac <= 1f;
         var rt = playhead.rectTransform;
         rt.anchoredPosition = new Vector2(RowsX + frac * RowsW - 1f, -(RowsTop - 6f));

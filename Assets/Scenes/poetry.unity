@@ -243,9 +243,11 @@ MonoBehaviour:
   stems:
   - name: "\u30E1\u30ED\u30C7\u30A3"
     clip: {fileID: 8300000, guid: 86774dab47d68504eaa4bd8bbefe070c, type: 3}
-    midi: {fileID: 4900000, guid: e02d221fb2340e144832f7746986e648, type: 3}
+    midi: {fileID: 4900000, guid: c3755f9f5f09df24d840d3818ac5485b, type: 3}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 1
+    midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 0
   - name: "\u30CF\u30E2\u30EA1"
@@ -253,6 +255,8 @@ MonoBehaviour:
     midi: {fileID: 4900000, guid: 18e3cb55307c8ab42adc03cffe3456db, type: 3}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 57
+    midiStartBar: 57
     hideWhenNoNotes: 1
     mute: 0
   - name: "\u30CF\u30E2\u30EA2"
@@ -260,20 +264,26 @@ MonoBehaviour:
     midi: {fileID: 4900000, guid: 6e3c3899739d2814ca732e1a723bfaa9, type: 3}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 99
+    midiStartBar: 99
     hideWhenNoNotes: 1
     mute: 0
   - name: "\u30CF\u30E2\u30EA3"
-    clip: {fileID: 0}
-    midi: {fileID: 0}
-    midiTrackName: 
-    midiTrackNumber: 0
-    hideWhenNoNotes: 1
-    mute: 0
-  - name: "\u9593\u594F"
     clip: {fileID: 8300000, guid: b02dea67d5374c64ba3ef7968fe6dda0, type: 3}
     midi: {fileID: 4900000, guid: ee7769ecdc1f1a0459f0965235907a7e, type: 3}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 99
+    midiStartBar: 99
+    hideWhenNoNotes: 1
+    mute: 0
+  - name: "\u9593\u594F"
+    clip: {fileID: 8300000, guid: b20436e3cdcdfeb46b60513ed5e56b52, type: 3}
+    midi: {fileID: 4900000, guid: 65ceedc0c7fbeb04fa042b90ec366843, type: 3}
+    midiTrackName: 
+    midiTrackNumber: 0
+    clipStartBar: 83
+    midiStartBar: 83
     hideWhenNoNotes: 1
     mute: 0
   - name: Vocal
@@ -281,6 +291,8 @@ MonoBehaviour:
     midi: {fileID: 0}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 1
+    midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 0
   - name: "\u4E0A\u7269"
@@ -288,6 +300,8 @@ MonoBehaviour:
     midi: {fileID: 0}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 1
+    midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 0
   - name: "\u30CF\u30FC\u30E2\u30CB\u30FC"
@@ -295,6 +309,8 @@ MonoBehaviour:
     midi: {fileID: 0}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 1
+    midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 0
   - name: "\u30B7\u30F3\u30BB"
@@ -302,6 +318,8 @@ MonoBehaviour:
     midi: {fileID: 0}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 1
+    midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 0
   - name: "\u30D1\u30FC\u30AB\u30C3\u30B7\u30E7\u30F3"
@@ -309,6 +327,8 @@ MonoBehaviour:
     midi: {fileID: 0}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 1
+    midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 0
   - name: SE
@@ -316,11 +336,14 @@ MonoBehaviour:
     midi: {fileID: 0}
     midiTrackName: 
     midiTrackNumber: 0
+    clipStartBar: 1
+    midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 0
   bpm: 126
   beatsPerBar: 4
   firstBarOffsetSec: 0
+  tempoMidi: {fileID: 4900000, guid: 409e5d53ef72a914f9b6cd9ed4c24917, type: 3}
   pages:
   - title: 
     lyricImage: {fileID: 2800000, guid: 42ac1f0e070ba654989f17d06446b1a3, type: 3}
@@ -500,6 +523,7 @@ MonoBehaviour:
   exportWidth: 4096
   exportHeight: 512
   exportColor: {r: 0, g: 0, b: 0, a: 1}
+  showAudioDebug: 1
   buttonLayout: 0
   scheduleAhead: 0.3
 --- !u!4 &849831446
