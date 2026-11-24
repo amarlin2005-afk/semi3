@@ -704,6 +704,10 @@ public class PoemPagePlayer : MonoBehaviour
         if (pages.Count == 0) GeneratePages();
         if (pages.Count == 0) return;
 
+        // 再生していないときは音のデータが読み込まれていないことがあるので、先に読み込む
+        foreach (var st in stems)
+            if (st.clip != null && st.clip.loadState != AudioDataLoadState.Loaded) st.clip.LoadAudioData();
+
         tempoBuilt = false;
         bool oldEdit = editMode;
         editMode = false;
@@ -1319,7 +1323,15 @@ public class PoemPagePlayer : MonoBehaviour
         Gamepad.current?.ResetHaptics();
         rumbleUntil = 0f;
         if (resetMutesOnReturn && initialMutes != null)
-            for (int s = 0; s < stems.Count; s++) stems[s].mute = initialMutes[s];
+        {
+            var on = new List<string>();
+            for (int s = 0; s < stems.Count; s++)
+            {
+                stems[s].mute = initialMutes[s];
+                if (!initialMutes[s]) on.Add(stems[s].name);
+            }
+            Debug.Log("最初に戻りました。鳴っている段：" + (on.Count > 0 ? string.Join("、", on) : "なし"));
+        }
         lastInputTime = Time.unscaledTime;
         StartPageNow(0);
         attractLoop = true;
@@ -1596,6 +1608,8 @@ public class PoemPagePlayer : MonoBehaviour
         if (edit) SetEditMode(!editMode);
         // ページボタンは、押した直後の0.35秒は受け付けない（スティックを回している間に、1回の押しが2回に数えられることがあるため）
         if ((next || prev) && Time.unscaledTime - lastPageButtonTime < 0.35f) { next = false; prev = false; }
+        // 待機中（最初のページの繰り返し）は、スティックを回しはじめるまでページをめくれない
+        if (attractLoop && !editMode && !debugHold) { next = false; prev = false; }
         if (next || prev) lastPageButtonTime = Time.unscaledTime;
         if (next) RequestPage(+1);
         if (prev) RequestPage(-1);

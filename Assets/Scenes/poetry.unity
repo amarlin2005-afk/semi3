@@ -342,8 +342,8 @@ MonoBehaviour:
   - title: 
     lyricImage: {fileID: 2800000, guid: b10956b10261d4f4489ba55ea96a974b, type: 3}
     lyric: 
-    startBar: 2
-    lengthBars: 4
+    startBar: 1
+    lengthBars: 5
     startBeatOffset: 0
     endBeatOffset: 0
     stemWindows:
@@ -365,9 +365,6 @@ MonoBehaviour:
     - stemNumber: 11
       startOffsetBeats: -4
       endOffsetBeats: -4
-    - stemNumber: 10
-      startOffsetBeats: -4
-      endOffsetBeats: -1
     stemImageOverrides: []
   - title: 
     lyricImage: {fileID: 2800000, guid: eed6544d24115e24a9e13f45c0949862, type: 3}
@@ -648,7 +645,7 @@ MonoBehaviour:
     startBar: 110
     lengthBars: 2
     startBeatOffset: 0
-    endBeatOffset: 0
+    endBeatOffset: 3
     stemWindows: []
     stemImageOverrides: []
   - title: "\u305A\u3063\u3068\u3053\u3053\u306B"
