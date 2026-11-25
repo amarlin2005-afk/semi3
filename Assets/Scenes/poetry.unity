@@ -241,7 +241,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stems:
-  - name: "\u30E1\u30ED\u30C7\u30A3"
+  - name: Melody
     clip: {fileID: 8300000, guid: 86774dab47d68504eaa4bd8bbefe070c, type: 3}
     midi: {fileID: 4900000, guid: c3755f9f5f09df24d840d3818ac5485b, type: 3}
     midiTrackName: 
@@ -250,7 +250,7 @@ MonoBehaviour:
     midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 0
-  - name: "\u30CF\u30E2\u30EA1"
+  - name: Chorus
     clip: {fileID: 8300000, guid: 980350e2ecc845f40b9b02661d60226f, type: 3}
     midi: {fileID: 4900000, guid: 18e3cb55307c8ab42adc03cffe3456db, type: 3}
     midiTrackName: 
@@ -259,7 +259,7 @@ MonoBehaviour:
     midiStartBar: 56
     hideWhenNoNotes: 1
     mute: 0
-  - name: "\u30CF\u30E2\u30EA2"
+  - name: Chorus
     clip: {fileID: 8300000, guid: fb8aa168248f0b74aabdff17ad72f0fe, type: 3}
     midi: {fileID: 4900000, guid: 6e3c3899739d2814ca732e1a723bfaa9, type: 3}
     midiTrackName: 
@@ -268,7 +268,7 @@ MonoBehaviour:
     midiStartBar: 98
     hideWhenNoNotes: 1
     mute: 0
-  - name: "\u30CF\u30E2\u30EA3"
+  - name: Chorus
     clip: {fileID: 8300000, guid: b02dea67d5374c64ba3ef7968fe6dda0, type: 3}
     midi: {fileID: 4900000, guid: ee7769ecdc1f1a0459f0965235907a7e, type: 3}
     midiTrackName: 
@@ -277,16 +277,7 @@ MonoBehaviour:
     midiStartBar: 98
     hideWhenNoNotes: 1
     mute: 0
-  - name: "\u9593\u594F"
-    clip: {fileID: 8300000, guid: b20436e3cdcdfeb46b60513ed5e56b52, type: 3}
-    midi: {fileID: 4900000, guid: 65ceedc0c7fbeb04fa042b90ec366843, type: 3}
-    midiTrackName: 
-    midiTrackNumber: 0
-    clipStartBar: 81
-    midiStartBar: 81
-    hideWhenNoNotes: 1
-    mute: 0
-  - name: "\u4E0A\u7269"
+  - name: Top line
     clip: {fileID: 8300000, guid: d37d153fdfaac8c41a379ecbb7a76684, type: 3}
     midi: {fileID: 0}
     midiTrackName: 
@@ -295,7 +286,7 @@ MonoBehaviour:
     midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 1
-  - name: "\u30CF\u30FC\u30E2\u30CB\u30FC"
+  - name: Harmony
     clip: {fileID: 8300000, guid: cbf3463fa9c60084c96733e2978a8baf, type: 3}
     midi: {fileID: 0}
     midiTrackName: 
@@ -304,7 +295,7 @@ MonoBehaviour:
     midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 1
-  - name: "\u30B7\u30F3\u30BB"
+  - name: Synth
     clip: {fileID: 8300000, guid: f25e32a469c70f44abf4a56d5c620a7c, type: 3}
     midi: {fileID: 0}
     midiTrackName: 
@@ -313,7 +304,7 @@ MonoBehaviour:
     midiStartBar: 1
     hideWhenNoNotes: 0
     mute: 1
-  - name: "\u30D1\u30FC\u30AB\u30C3\u30B7\u30E7\u30F3"
+  - name: Perc
     clip: {fileID: 8300000, guid: c91f3f4af5af0ee44bbc526294532e48, type: 3}
     midi: {fileID: 0}
     midiTrackName: 
@@ -366,6 +357,7 @@ MonoBehaviour:
       startOffsetBeats: -4
       endOffsetBeats: -4
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: 
     lyricImage: {fileID: 2800000, guid: eed6544d24115e24a9e13f45c0949862, type: 3}
     lyric: 
@@ -378,6 +370,7 @@ MonoBehaviour:
       startOffsetBeats: 1
       endOffsetBeats: -3
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: 
     lyricImage: {fileID: 0}
     lyric: 
@@ -390,7 +383,7 @@ MonoBehaviour:
       startOffsetBeats: 8
       endOffsetBeats: 0
     - stemNumber: 6
-      startOffsetBeats: 4
+      startOffsetBeats: 0
       endOffsetBeats: 0
     - stemNumber: 9
       startOffsetBeats: -2
@@ -405,6 +398,7 @@ MonoBehaviour:
       startOffsetBeats: -4
       endOffsetBeats: 0
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u3046\u3064\u3080\u3044\u305F"
     lyricImage: {fileID: 2800000, guid: 42ac1f0e070ba654989f17d06446b1a3, type: 3}
     lyric: 
@@ -414,8 +408,9 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
-  - title: 
-    lyricImage: {fileID: 0}
+    washColor: {r: 0, g: 0, b: 0, a: 0}
+  - title: "\u307F\u3042\u3052\u308C\u3070"
+    lyricImage: {fileID: 2800000, guid: 5daab0302ed9e4a45ab05f97009eef3c, type: 3}
     lyric: 
     startBar: 25
     lengthBars: 4
@@ -423,6 +418,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u5C0E\u304B\u308C\u308B"
     lyricImage: {fileID: 2800000, guid: 46a942f46af7b914eb7f27ffab7074ad, type: 3}
     lyric: 
@@ -432,6 +428,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u5FD8\u308C\u3066\u3044\u305F"
     lyricImage: {fileID: 2800000, guid: cc76967c8373cd145a7eda188ce03d5c, type: 3}
     lyric: 
@@ -441,6 +438,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u307F\u3064\u3051\u305F"
     lyricImage: {fileID: 2800000, guid: ba7762c7fb68360419dd768840d320a4, type: 3}
     lyric: 
@@ -450,6 +448,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u5149\u308B\u305D\u306E"
     lyricImage: {fileID: 2800000, guid: 614e8979b54e37f418dc4e0cd7a9fa15, type: 3}
     lyric: 
@@ -459,6 +458,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u304A\u3044\u3067"
     lyricImage: {fileID: 2800000, guid: 3c8d5288d16b5b748aae490d9401af53, type: 3}
     lyric: 
@@ -468,6 +468,7 @@ MonoBehaviour:
     endBeatOffset: -2
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u304B\u305C\u306B\u306E\u3063\u3066"
     lyricImage: {fileID: 2800000, guid: 40c13c024ea3d6f47aa35a0eacebe696, type: 3}
     lyric: 
@@ -477,6 +478,7 @@ MonoBehaviour:
     endBeatOffset: 2
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u3069\u3053\u307E\u3067\u3082"
     lyricImage: {fileID: 2800000, guid: 8997b6b9ebcd2b54bab2838e7047d99c, type: 3}
     lyric: 
@@ -486,6 +488,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u6E80\u3061\u308B\u547D\u306E\u606F\u5439\u795D\u796D\u306E\u3072\u3068\u3068\u304D"
     lyricImage: {fileID: 2800000, guid: e3fc37b0d6b67db4c9a12c530a866815, type: 3}
     lyric: 
@@ -495,6 +498,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u61A7\u308C\u305F\u5922\u306F"
     lyricImage: {fileID: 2800000, guid: e3fc37b0d6b67db4c9a12c530a866815, type: 3}
     lyric: 
@@ -504,6 +508,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u904A\u3073\u75B2\u308C\u3066"
     lyricImage: {fileID: 2800000, guid: 4b1942292a02da545bda297d13356730, type: 3}
     lyric: 
@@ -513,6 +518,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u3082\u3089\u3063\u305F\u5E78\u305B"
     lyricImage: {fileID: 2800000, guid: 45d398808cd34854a86380ca686e7912, type: 3}
     lyric: 
@@ -522,6 +528,7 @@ MonoBehaviour:
     endBeatOffset: 2
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u307E\u3088\u3063\u305F\u3063\u3066"
     lyricImage: {fileID: 2800000, guid: fdd8c8e4acb59884fbe5d074c3265dcc, type: 3}
     lyric: 
@@ -531,6 +538,7 @@ MonoBehaviour:
     endBeatOffset: 2
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u624B\u3092\u53D6\u308A\u5408\u3044\u3059\u3059\u3082\u3046"
     lyricImage: {fileID: 2800000, guid: 3db3a476ac679c544b891ac897e426b0, type: 3}
     lyric: 
@@ -540,6 +548,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u5B88\u3089\u308C\u3066\u304D\u305F\u304B\u3089"
     lyricImage: {fileID: 2800000, guid: 8425911b072817247bbfa01a27998f07, type: 3}
     lyric: 
@@ -549,6 +558,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u5DE1\u308B\u8F2A\u306E"
     lyricImage: {fileID: 2800000, guid: 80bda32575bc854478068b081a12561a, type: 3}
     lyric: 
@@ -558,6 +568,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u6E80\u3061\u308B\u547D\u306E\u606F\u5439\u7D99\u627F\u306E\u3072\u3068\u3068\u304D"
     lyricImage: {fileID: 2800000, guid: 35011cdac1814b142997476b8415f81f, type: 3}
     lyric: 
@@ -567,6 +578,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u7E4B\u304C\u308C\u305F"
     lyricImage: {fileID: 2800000, guid: 96e3396cb2a7f494cbdd02bad97ab5ce, type: 3}
     lyric: 
@@ -576,6 +588,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\uFF08\u9593\u594F\u3000\u30B5\u30F3\u30D7\u30EA\u30F3\u30B0\uFF09"
     lyricImage: {fileID: 2800000, guid: 9a9171659d3eaad49b7c3367af68b12f, type: 3}
     lyric: 
@@ -585,6 +598,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u9B54\u6CD5\u304C"
     lyricImage: {fileID: 2800000, guid: 76f0f40788dad4047b035749f5dc5e1f, type: 3}
     lyric: 
@@ -594,6 +608,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u304B\u304C\u3084\u304D\u3068\u5171\u306B"
     lyricImage: {fileID: 2800000, guid: 1be25b7a3604e48498d327793f9c461e, type: 3}
     lyric: 
@@ -603,6 +618,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u9053\u306A\u304D\u9053\u3092\u884C\u304F"
     lyricImage: {fileID: 2800000, guid: 7e34f4fd89f40fb4bbb2a5aac9908f93, type: 3}
     lyric: 
@@ -612,6 +628,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u306F\u308C\u3070\u306A\u308C\u3066\u3082"
     lyricImage: {fileID: 2800000, guid: e4d4af02b67b52f449087edc694a6c14, type: 3}
     lyric: 
@@ -621,6 +638,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u30D1\u30EC\u30FC\u30C9\u3057\u3088\u3046\u306D"
     lyricImage: {fileID: 2800000, guid: 4469a87dd9375dc40aa8c72eb4ae81a1, type: 3}
     lyric: 
@@ -630,6 +648,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u6E80\u3061\u308B\u547D\u306E\u606F\u5439\u3044\u3068\u304A\u3057\u3044"
     lyricImage: {fileID: 2800000, guid: f509180d7c470b94b94d2a1bebc5bfaf, type: 3}
     lyric: 
@@ -639,6 +658,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u3042\u306E\u65E5\u898B\u305F\u5922\u306F"
     lyricImage: {fileID: 2800000, guid: 58eca3bc986f73d429fe1ca964136fcd, type: 3}
     lyric: 
@@ -648,6 +668,7 @@ MonoBehaviour:
     endBeatOffset: 3
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u305A\u3063\u3068\u3053\u3053\u306B"
     lyricImage: {fileID: 2800000, guid: b519b85b71307ba439fb2662ea3ba4dc, type: 3}
     lyric: 
@@ -657,6 +678,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u30A2\u30A6\u30C8\u30ED\uFF11"
     lyricImage: {fileID: 0}
     lyric: 
@@ -666,6 +688,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u30A2\u30A6\u30C8\u30ED\uFF12"
     lyricImage: {fileID: 0}
     lyric: 
@@ -675,6 +698,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   - title: "\u30A2\u30A6\u30C8\u30ED\uFF12"
     lyricImage: {fileID: 0}
     lyric: 
@@ -684,6 +708,7 @@ MonoBehaviour:
     endBeatOffset: 0
     stemWindows: []
     stemImageOverrides: []
+    washColor: {r: 0, g: 0, b: 0, a: 0}
   midiOffsetSec: 0
   midiRowWaveformAlpha: 0.2
   paperColor: {r: 0.98, g: 0.97, b: 0.95, a: 1}
@@ -721,7 +746,49 @@ MonoBehaviour:
   rewindVolume: 0.35
   idleReturnSec: 60
   resetMutesOnReturn: 1
+  idleMuteResetSec: 30
   scrubResponse: 1
+  uiBackground: {fileID: 2800000, guid: 360126b46d8bcbb45accdf96c2da4b20, type: 3}
+  stickTopImage: {fileID: 2800000, guid: 0783fd1da7bb7df4eb9a73be1bfa1f60, type: 3}
+  stickTopCenter: {x: 340, y: 195}
+  stickTopScale: 1
+  stickTravel: 10.2
+  stickFollow: 12.7
+  needleImage: {fileID: 2800000, guid: ab7c97d5d7cc624419f6c641e6e5c8c4, type: 3}
+  needlePivot: {x: 1557, y: 330}
+  needleRootInImage: {x: 0.5, y: 0.05}
+  needleScale: 1
+  needleMaxAngle: 75
+  meterMaxRatio: 2
+  needleStiffness: 60
+  needleDamping: 0.6
+  paintImages:
+  - {fileID: 2800000, guid: 036f94577aad43146998659bb6a9caca, type: 3}
+  paintCenters:
+  - {x: 350, y: 250}
+  - {x: 1545, y: 265}
+  paintScale: 1
+  paintColor: {r: 0.55, g: 0.7, b: 0.9, a: 1}
+  paintColorGain: 2.5
+  paintFadeSec: 2
+  paintWobble: 1
+  rButtonCenter: {x: 998, y: 401}
+  lButtonCenter: {x: 918, y: 401}
+  buttonGlowSize: 150
+  buttonGlowColor: {r: 1, g: 0.45, b: 0.08, a: 1}
+  buttonPressedColor: {r: 0.25, g: 0.85, b: 0.35, a: 1}
+  showPageNumber: 1
+  lyricStemName: "\u30E1\u30ED\u30C7\u30A3"
+  washEnabled: 1
+  washStemName: Harmony
+  washPatterns:
+  - {fileID: 2800000, guid: 036f94577aad43146998659bb6a9caca, type: 3}
+  washColor: {r: 0.55, g: 0.7, b: 0.9, a: 1}
+  washStrength: 0.55
+  washInSec: 3
+  washOutSec: 2.5
+  washEdge: 0.6
+  washColorChangeSec: 2
   pageTurnAnim: 0
   pageTurnSec: 0.9
   rewindTurnSpeedUp: 4
@@ -735,7 +802,7 @@ MonoBehaviour:
   debugLoopPage: 1
   showDebugPanel: 0
   keepPlayModeTweaks: 1
-  showAudioDebug: 1
+  showAudioDebug: 0
   controllerPageButtons: 1
   autoPageTurn: 0
   buttonLayout: 1

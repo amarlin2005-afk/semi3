@@ -26,6 +26,7 @@ using UnityEngine.UI;
 //   右スティック押し込み : 選んだ段のミュート切り替え
 //   Tab / Start       : 設定モードの切り替え
 //   F1                : デバッグ用のページ一覧（押したページから再生）
+//   F2                : 確認用の文字（音の時計・ページ番号・速さなど）の表示切り替え
 //   左スティックを回す : 手回しで再生位置を動かす（時計回りで進む、反時計回りで戻る）。手を離すと少しして自動再生に戻る
 //
 // 設定モード（再生中にページの範囲・段ごとの範囲をマウスで調整する）
@@ -89,6 +90,8 @@ public class PoemPage
     public List<StemWindow> stemWindows = new List<StemWindow>();
     [Tooltip("自動生成の代わりに使う画像（段の順番どおり）。書き出したPNGを加工したものを、縦横比を変えずに入れる")]
     public List<Texture2D> stemImageOverrides = new List<Texture2D>();
+    [Tooltip("このページで広がる水彩の色（透明のままなら、全体の Wash Color を使う）")]
+    public Color washColor = new Color(0f, 0f, 0f, 0f);
 }
 
 public class PoemPagePlayer : MonoBehaviour
@@ -210,10 +213,88 @@ public class PoemPagePlayer : MonoBehaviour
     public float idleReturnSec = 60f;
     [Tooltip("最初のページに戻ったとき、ミュートを始めの状態（インスペクターの設定）に戻す")]
     public bool resetMutesOnReturn = true;
+    [Tooltip("何も操作されないまま何秒たったら、ミュートを始めの状態（インスペクターの設定）に戻すか。ページはそのまま（0で使わない）")]
+    public float idleMuteResetSec = 30f;
 
 
     [Tooltip("回す速さの変化を、どれくらいなめらかにするか（大きいほど機敏）")]
     public float scrubResponse = 10f;
+
+    [Header("画面のUI画像（Illustratorのアートボード 1920×1080 のまま書き出した透過PNG）")]
+    [Tooltip("動かない部分（紙・枠・スティックの土台・メーターの目盛り・LRボタンなど）")]
+    public Texture2D uiBackground;
+    [Tooltip("スティックの上の部分だけの画像。スティックの入力に合わせて動く")]
+    public Texture2D stickTopImage;
+    [Tooltip("スティックの上の部分を置く位置（画像の中心が、1920×1080 の画面のどこに来るか。左上が0,0）。画像を切り抜いて書き出した場合に使う")]
+    public Vector2 stickTopCenter = new Vector2(340f, 195f);
+    [Tooltip("スティックの上の部分の大きさ（書き出した画像の何倍で表示するか）")]
+    public float stickTopScale = 1f;
+    [Tooltip("スティックをいっぱいに倒したとき、上の部分が動く距離（ピクセル）")]
+    public float stickTravel = 22f;
+    [Tooltip("スティックの絵が入力についてくる速さ")]
+    [Range(1f, 40f)] public float stickFollow = 18f;
+    [Tooltip("メーターの針だけの画像")]
+    public Texture2D needleImage;
+    [Tooltip("針の根もと（回転の中心）を置く位置（1920×1080 の画面での位置。左上が0,0）")]
+    public Vector2 needlePivot = new Vector2(1557f, 330f);
+    [Tooltip("針の画像の中で、根もとがどこにあるか（0〜1。左下が0,0、右上が1,1。下の真ん中なら 0.5, 0）。画像を切り抜いて書き出した場合に使う")]
+    public Vector2 needleRootInImage = new Vector2(0.5f, 0.05f);
+    [Tooltip("針の大きさ（書き出した画像の何倍で表示するか）")]
+    public float needleScale = 1f;
+    [Tooltip("針がいちばん左（速さ0）・いちばん右に振れたときの角度（12時からの角度）")]
+    [Range(10f, 170f)] public float needleMaxAngle = 75f;
+    [Tooltip("何倍の速さで針がいちばん右に振れるか")]
+    [Range(1.2f, 4f)] public float meterMaxRatio = 2f;
+    [Tooltip("針のばねの硬さ（大きいほど機敏、小さいほどゆらゆら）")]
+    [Range(5f, 200f)] public float needleStiffness = 60f;
+    [Tooltip("針の揺れのおさまりやすさ（小さいほど行き過ぎて揺れる）")]
+    [Range(0.1f, 2f)] public float needleDamping = 0.6f;
+    [Tooltip("絵の具の模様の画像（グレースケール、透過PNG）。複数あってもよい。uiBackground には含めないこと")]
+    public List<Texture2D> paintImages = new List<Texture2D>();
+    [Tooltip("切り抜いて書き出した絵の具の模様を置く位置（画像の中心。Paint Images と同じ順番）")]
+    public List<Vector2> paintCenters = new List<Vector2> { new Vector2(350f, 250f), new Vector2(1545f, 265f) };
+    [Tooltip("絵の具の模様の大きさ（書き出した画像の何倍で表示するか）")]
+    public float paintScale = 1f;
+    [Tooltip("ハーモニーが鳴っているときに、絵の具の模様に付く色（ページごとの Wash Color があればそちらを優先）")]
+    public Color paintColor = new Color(0.55f, 0.70f, 0.90f, 1f);
+    [Tooltip("色の濃さ")]
+    [Range(0.5f, 6f)] public float paintColorGain = 2.5f;
+    [Tooltip("色が広がる・引くのにかかる秒数")]
+    [Range(0.2f, 10f)] public float paintFadeSec = 2f;
+    [Tooltip("いつも少しだけにじんで動く強さ（0で止まる）")]
+    [Range(0f, 3f)] public float paintWobble = 1f;
+    [Tooltip("Rボタンの中心（1920×1080 の画面での位置）")]
+    public Vector2 rButtonCenter = new Vector2(968f, 398f);
+    [Tooltip("Lボタンの中心")]
+    public Vector2 lButtonCenter = new Vector2(865f, 398f);
+    [Tooltip("ボタンの光の大きさ（ピクセル）")]
+    public float buttonGlowSize = 150f;
+    public Color buttonGlowColor = new Color(1f, 0.45f, 0.08f, 1f);
+    [Tooltip("ボタンを押して、ページめくりが予約されたときの光の色")]
+    public Color buttonPressedColor = new Color(0.25f, 0.85f, 0.35f, 1f);
+    [Tooltip("左上のページ番号を表示する")]
+    public bool showPageNumber = true;
+    [Tooltip("この段をミュートすると、歌詞がぼける（段の名前）")]
+    public string lyricStemName = "メロディ";
+
+    [Header("水彩の色（指定の段が鳴っている間だけ、画面に色がにじんで広がる）")]
+    public bool washEnabled = true;
+    [Tooltip("どの段が鳴っているときに色を付けるか（段の名前）")]
+    public string washStemName = "ハーモニー";
+    [Tooltip("水彩のパターン（グレースケール。白＝紙のまま、黒いほど濃い）。色が付くたびに順番に使う。空なら自動で作った模様を使う")]
+    public List<Texture2D> washPatterns = new List<Texture2D>();
+    [Tooltip("広がる色（ページごとに変えたいときは、各ページの Wash Color で上書きできる）")]
+    public Color washColor = new Color(0.55f, 0.70f, 0.90f, 1f);
+    [Tooltip("色の濃さ")]
+    [Range(0f, 1f)] public float washStrength = 0.55f;
+    [Tooltip("にじみが画面全体に広がるまでの秒数")]
+    [Range(0.3f, 10f)] public float washInSec = 3f;
+    [Tooltip("段がミュートされてから、色が乾いて消えるまでの秒数")]
+    [Range(0.2f, 10f)] public float washOutSec = 2.5f;
+    [Tooltip("にじみの縁が濃くなる強さ（水彩らしさ）")]
+    [Range(0f, 1f)] public float washEdge = 0.6f;
+    [Tooltip("ページが変わって色が変わるとき、色が移り変わる秒数")]
+    [Range(0.1f, 10f)] public float washColorChangeSec = 2f;
 
     [Header("ページめくりのアニメーション")]
     public bool pageTurnAnim = true;
@@ -248,7 +329,7 @@ public class PoemPagePlayer : MonoBehaviour
     public bool keepPlayModeTweaks = true;
 
     [Header("確認用")]
-    [Tooltip("画面右上に、音の時計と出力の状態を表示する（動作確認が終わったらオフに）")]
+    [Tooltip("確認用の文字（音の時計・ページ番号・ページ予約・速さ「ぴったり」など）をまとめて表示する。再生中は F2 でも切り替えられる。展示ではオフに")]
     public bool showAudioDebug = true;
 
     [Header("操作")]
@@ -338,6 +419,24 @@ public class PoemPagePlayer : MonoBehaviour
     float playRatio = 1f;     // 実際の再生の速さ（元のテンポの何倍か）
     float attractTimer;       // 1倍の近くで回し続けている時間
     Text crankText;
+
+    // 画面のUI
+    RectTransform stickTopRT, needleRT;
+    Material paintMat;
+    readonly List<RawImage> paintImgs = new List<RawImage>();
+    Image rGlow, lGlow;
+    Vector2 stickPos;
+    float needleAngle, needleVel, paintAmount, rGlowA, lGlowA;
+    Color paintCur, rGlowCol = Color.clear, lGlowCol = Color.clear;
+
+    // 水彩の色
+    Material washMat;
+    RawImage washImg;
+    Texture2D washFallback;
+    bool washOn, washWarned;
+    float washSpread, washAlpha = 0f;
+    int washPatternIdx = -1;
+    Color washCur;
 
     // ページめくりのアニメーション
     bool turning;
@@ -1095,6 +1194,331 @@ public class PoemPagePlayer : MonoBehaviour
     }
 
     // =====================================================================
+    // 画面のUI画像（スティック・メーター・絵の具の模様・LRボタンの光）
+    // 画像はすべて 1920×1080 のアートボードのまま書き出したものを、画面いっぱいに重ねる
+    // =====================================================================
+
+    RawImage FullScreen(string name, Transform parent, Texture2D tex, Vector2 pivotPx)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(parent, false);
+        rt.pivot = new Vector2(pivotPx.x / 1920f, 1f - pivotPx.y / 1080f);
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        var img = go.AddComponent<RawImage>();
+        img.texture = tex;
+        img.raycastTarget = false;
+        return img;
+    }
+
+    // 段を名前で探す。大文字・小文字や前後の空白は無視し、日本語と英語の名前どちらでも見つかるようにする
+    static readonly string[][] stemAliases =
+    {
+        new[] { "ハーモニー", "harmony", "harmonies" },
+        new[] { "メロディ", "メロディー", "melody", "piano" },
+        new[] { "ボーカル", "vocal", "vocals", "vo" },
+    };
+
+    int FindStem(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return -1;
+        string key = name.Trim().ToLowerInvariant();
+        int idx = stems.FindIndex(st => st.name != null && st.name.Trim().ToLowerInvariant() == key);
+        if (idx >= 0) return idx;
+        foreach (var group in stemAliases)
+        {
+            if (Array.IndexOf(group, key) < 0) continue;
+            foreach (var alias in group)
+            {
+                idx = stems.FindIndex(st => st.name != null && st.name.Trim().ToLowerInvariant() == alias);
+                if (idx >= 0) return idx;
+            }
+        }
+        return -1;
+    }
+
+    // 1920×1080（16:9 で大きいもの）はアートボードのまま書き出した画像とみなして、画面いっぱいに重ねる
+    static bool IsFullArtboard(Texture2D t) => t.width >= 1280 && Mathf.Abs((float)t.width / t.height - 16f / 9f) < 0.02f;
+
+    // 切り抜いて書き出した画像を、元の大きさのまま指定の位置に置く（pivot が位置の基準点、回転の中心にもなる）
+    RawImage Placed(string name, Transform parent, Texture2D tex, Vector2 posPx, Vector2 pivot, float scale)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(parent, false);
+        rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = pivot;
+        rt.sizeDelta = new Vector2(tex.width, tex.height) * Mathf.Max(0.01f, scale);
+        rt.anchoredPosition = new Vector2(posPx.x, -posPx.y);
+        var img = go.AddComponent<RawImage>();
+        img.texture = tex;
+        img.raycastTarget = false;
+        return img;
+    }
+
+    Vector2 stickTopBase;
+    bool stickPlaced, needlePlaced;
+
+    void BuildUIParts(Transform root)
+    {
+        if (uiBackground != null) FullScreen("UIBackground", root, uiBackground, new Vector2(960f, 540f));
+
+        var paintShader = Shader.Find("Hidden/PaintBlot");
+        if (paintImages != null && paintImages.Count > 0)
+        {
+            if (paintShader != null) paintMat = new Material(paintShader);
+            else Debug.LogWarning("PaintBlot.shader が見つからないので、絵の具の模様に色は付きません。Assets に入れてください。");
+            for (int i = 0; i < paintImages.Count; i++)
+            {
+                var tex = paintImages[i];
+                if (tex == null) continue;
+                var center = i < paintCenters.Count ? paintCenters[i] : new Vector2(960f, 540f);
+                var img = IsFullArtboard(tex) ? FullScreen("Paint", root, tex, new Vector2(960f, 540f))
+                                              : Placed("Paint", root, tex, center, new Vector2(0.5f, 0.5f), paintScale);
+                if (paintMat != null) img.material = paintMat;
+                paintImgs.Add(img);
+            }
+        }
+        paintCur = paintColor;
+
+        if (stickTopImage != null)
+        {
+            stickTopRT = IsFullArtboard(stickTopImage)
+                ? FullScreen("StickTop", root, stickTopImage, new Vector2(960f, 540f)).rectTransform
+                : Placed("StickTop", root, stickTopImage, stickTopCenter, new Vector2(0.5f, 0.5f), stickTopScale).rectTransform;
+            stickTopBase = stickTopRT.anchoredPosition;
+            stickPlaced = !IsFullArtboard(stickTopImage);
+        }
+        if (needleImage != null)
+        {
+            // 針は根もとを回転の中心にする（根もとは動かず、先だけが振れる）
+            needleRT = IsFullArtboard(needleImage)
+                ? FullScreen("Needle", root, needleImage, needlePivot).rectTransform
+                : Placed("Needle", root, needleImage, needlePivot, needleRootInImage, needleScale).rectTransform;
+            needlePlaced = !IsFullArtboard(needleImage);
+        }
+        needleAngle = 0f;
+
+        var glowTex = MakeGlow(128);
+        rGlow = MakeGlowImage(root, "RGlow", glowTex, rButtonCenter);
+        lGlow = MakeGlowImage(root, "LGlow", glowTex, lButtonCenter);
+    }
+
+    Image MakeGlowImage(Transform root, string name, Texture2D tex, Vector2 center)
+    {
+        var img = MakeImage(root, name, center.x - buttonGlowSize * 0.5f, center.y - buttonGlowSize * 0.5f, buttonGlowSize, buttonGlowSize, Color.clear);
+        img.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+        return img;
+    }
+
+    // ふんわりした光（中心が明るく、外へ向かって消える）
+    static Texture2D MakeGlow(int size)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float r = (new Vector2(x, y) / (size - 1) * 2f - Vector2.one).magnitude;
+                float a = Mathf.Clamp01(1f - r);
+                a = a * a * (0.6f + 0.4f * a);
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+        tex.Apply();
+        return tex;
+    }
+
+    // 今の再生の速さ（元のテンポの何倍か。向きは無視）
+    float CurrentSpeedRatio()
+    {
+        if (!cranking) return 1f;
+        if (atEnd) return 0f;
+        if (rewinding || crankMode == CrankMode.位置) return Mathf.Abs((float)(crankRate * SecPerQAt(crankQ)));
+        return Mathf.Abs(playRatio);
+    }
+
+    void UpdateUIParts(double now)
+    {
+        float dt = Time.unscaledDeltaTime;
+
+        // 再生中にインスペクターで位置や大きさを変えても、すぐ反映する（位置合わせ用）
+        if (stickTopRT != null && stickPlaced)
+        {
+            stickTopBase = new Vector2(stickTopCenter.x, -stickTopCenter.y);
+            stickTopRT.sizeDelta = new Vector2(stickTopImage.width, stickTopImage.height) * Mathf.Max(0.01f, stickTopScale);
+        }
+        if (needleRT != null && needlePlaced)
+        {
+            needleRT.pivot = needleRootInImage;
+            needleRT.sizeDelta = new Vector2(needleImage.width, needleImage.height) * Mathf.Max(0.01f, needleScale);
+            needleRT.anchoredPosition = new Vector2(needlePivot.x, -needlePivot.y);
+        }
+
+        // ① スティックの絵：入力に合わせて上の部分が動く
+        if (stickTopRT != null)
+        {
+            var gp = Gamepad.current;
+            Vector2 v = gp != null ? gp.leftStick.ReadValue() : Vector2.zero;
+            stickPos = Vector2.Lerp(stickPos, v * stickTravel, 1f - Mathf.Exp(-stickFollow * dt));
+            stickTopRT.anchoredPosition = stickTopBase + stickPos;
+        }
+
+        // ③ メーター：速さ0で左端、ぴったりで12時、速すぎると右へ。ばねのように少し揺れながら動く
+        if (needleRT != null)
+        {
+            float r = CurrentSpeedRatio();
+            float target = r <= 1f ? (r - 1f) * needleMaxAngle
+                                   : Mathf.Min(1f, (r - 1f) / (meterMaxRatio - 1f)) * needleMaxAngle;
+            float k = needleStiffness, c = 2f * Mathf.Sqrt(k) * needleDamping;
+            int steps = Mathf.Max(1, Mathf.CeilToInt(dt / 0.005f));
+            float h = dt / steps;
+            for (int i = 0; i < steps; i++)
+            {
+                needleVel += (k * (target - needleAngle) - c * needleVel) * h;
+                needleAngle += needleVel * h;
+            }
+            needleAngle = Mathf.Clamp(needleAngle, -needleMaxAngle - 8f, needleMaxAngle + 8f);
+            needleRT.localEulerAngles = new Vector3(0f, 0f, -needleAngle);
+        }
+
+        // ④ 絵の具の模様：ハーモニーが鳴っている間だけ色がにじむ
+        if (paintMat != null)
+        {
+            int hs = FindStem(washStemName);
+            bool on = hs >= 0 && !stems[hs].mute && rowVisible[shownPage, hs];
+            paintAmount = Mathf.MoveTowards(paintAmount, on ? 1f : 0f, dt / Mathf.Max(0.05f, paintFadeSec));
+            var pc = pages[shownPage].washColor;
+            var target = pc.a > 0f ? pc : paintColor;
+            paintCur = Color.Lerp(paintCur, target, 1f - Mathf.Exp(-dt * 1.5f));
+            float eased = paintAmount * paintAmount * (3f - 2f * paintAmount);
+            paintMat.SetFloat("_Amount", eased);
+            paintMat.SetColor("_Color", paintCur);
+            paintMat.SetFloat("_Gain", paintColorGain);
+            paintMat.SetFloat("_Wobble", paintWobble);
+        }
+
+        // ⑤ LRボタンの光：ページの最後の小節で、拍に合わせてRが光る。逆再生でページの最初の小節に来たらLが光る
+        if (rGlow != null)
+        {
+            var pg = pages[currentPage];
+            double ps = PageStartQ(pg), pe = PageEndQ(pg);
+            double q;
+            if (cranking) q = crankQ;
+            else q = SongSecToQ(PageStartSec(pg) + (now - (nextIterStart - PageLen(currentPage))));
+            float ratioSigned = cranking ? (crankMode == CrankMode.テンポ ? playRatio : (float)(crankRate * SecPerQAt(crankQ))) : 1f;
+            bool usable = !rewinding && !attractLoop && !editMode && !atEnd && !autoPageTurn;
+            bool fwd = ratioSigned > 0.02f, rev = ratioSigned < -0.02f;
+            float frac = (float)(q - Math.Floor(q));
+
+            float rT = 0f, lT = 0f;
+            if (usable && fwd && currentPage < pages.Count - 1 && q >= pe - Bpb)
+                rT = 0.25f + 0.75f * Mathf.Exp(-frac * 5f);
+            if (usable && rev && currentPage > 0 && q < ps + Bpb)
+                lT = 0.25f + 0.75f * Mathf.Exp(-(1f - frac) * 5f);
+            // 押して予約されたら、めくれるまで緑に灯ったまま
+            bool rPressed = !rewinding && pendingPage > currentPage;
+            bool lPressed = !rewinding && pendingPage >= 0 && pendingPage < currentPage;
+            if (rPressed) rT = 0.9f;
+            if (lPressed) lT = 0.9f;
+
+            rGlowA = Mathf.Lerp(rGlowA, rT, 1f - Mathf.Exp(-25f * dt));
+            lGlowA = Mathf.Lerp(lGlowA, lT, 1f - Mathf.Exp(-25f * dt));
+            rGlowCol = Color.Lerp(rGlowCol, rPressed ? buttonPressedColor : buttonGlowColor, 1f - Mathf.Exp(-20f * dt));
+            lGlowCol = Color.Lerp(lGlowCol, lPressed ? buttonPressedColor : buttonGlowColor, 1f - Mathf.Exp(-20f * dt));
+            rGlow.color = new Color(rGlowCol.r, rGlowCol.g, rGlowCol.b, rGlowCol.a * rGlowA);
+            lGlow.color = new Color(lGlowCol.r, lGlowCol.g, lGlowCol.b, lGlowCol.a * lGlowA);
+        }
+    }
+
+    // =====================================================================
+    // 水彩の色：指定の段が鳴っている間だけ、画面に色がにじんで広がる
+    // =====================================================================
+
+    void UpdateWash()
+    {
+        if (washMat == null) return;
+        float dt = Time.unscaledDeltaTime;
+
+        int ws = FindStem(washStemName);
+        if (ws < 0 && washEnabled && !washWarned)
+        {
+            washWarned = true;
+            Debug.LogWarning("水彩の色：段「" + washStemName + "」が見つかりません。Wash Stem Name を段の名前に合わせてください。");
+        }
+        bool want = washEnabled && ws >= 0 && !stems[ws].mute && rowVisible[shownPage, ws] && !rewinding;
+
+        if (want && !washOn)
+        {
+            washOn = true;
+            // 乾いていたら、新しい模様と落とす点を選んで、ゼロからにじませる
+            if (washAlpha < 0.05f)
+            {
+                washSpread = 0f;
+                NextWashPattern();
+            }
+        }
+        if (!want) washOn = false;
+
+        if (washOn)
+        {
+            washSpread = Mathf.MoveTowards(washSpread, 1f, dt / Mathf.Max(0.05f, washInSec));
+            washAlpha = Mathf.MoveTowards(washAlpha, 1f, dt / 0.25f);
+        }
+        else washAlpha = Mathf.MoveTowards(washAlpha, 0f, dt / Mathf.Max(0.05f, washOutSec));
+
+        var pc = pages[shownPage].washColor;
+        var target = pc.a > 0f ? pc : washColor;
+        washCur = Color.Lerp(washCur, target, 1f - Mathf.Exp(-dt * 3f / Mathf.Max(0.1f, washColorChangeSec)));
+
+        float spreadEased = 1f - (1f - washSpread) * (1f - washSpread);   // はじめ速く、だんだんゆっくり広がる
+        float alphaEased = washAlpha * washAlpha * (3f - 2f * washAlpha);
+        washMat.SetFloat("_Spread", spreadEased);
+        washMat.SetFloat("_Alpha", alphaEased);
+        washMat.SetFloat("_Strength", washStrength);
+        washMat.SetFloat("_Edge", washEdge);
+        washMat.SetColor("_Color", washCur);
+        washMat.SetFloat("_Aspect", (float)Screen.width / Mathf.Max(1, Screen.height));
+        washImg.enabled = alphaEased > 0.001f;
+    }
+
+    void NextWashPattern()
+    {
+        Texture2D tex;
+        if (washPatterns != null && washPatterns.Count > 0)
+        {
+            washPatternIdx = (washPatternIdx + 1) % washPatterns.Count;
+            tex = washPatterns[washPatternIdx];
+        }
+        else
+        {
+            if (washFallback == null) washFallback = MakeWashFallback(512, 288);
+            tex = washFallback;
+        }
+        washImg.texture = tex;
+        washMat.SetVector("_Origin", new Vector4(UnityEngine.Random.Range(0.2f, 0.8f), UnityEngine.Random.Range(0.25f, 0.75f), 0f, 0f));
+    }
+
+    // パターン画像がないとき用の、ふんわりした模様
+    static Texture2D MakeWashFallback(int w, int h)
+    {
+        var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        float sx = UnityEngine.Random.value * 100f, sy = UnityEngine.Random.value * 100f;
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                float n = 0.55f * Mathf.PerlinNoise(x * 0.006f + sx, y * 0.006f + sy)
+                        + 0.30f * Mathf.PerlinNoise(x * 0.02f + sy, y * 0.02f + sx)
+                        + 0.15f * Mathf.PerlinNoise(x * 0.08f + 7f, y * 0.08f + 3f);
+                float dens = Mathf.Clamp01((n - 0.25f) * 1.6f);
+                float v = 1f - dens;
+                tex.SetPixel(x, y, new Color(v, v, v, 1f));
+            }
+        tex.Apply();
+        return tex;
+    }
+
+    // =====================================================================
     // 左スティックで手回し
     // =====================================================================
 
@@ -1341,6 +1765,16 @@ public class PoemPagePlayer : MonoBehaviour
     // しばらく誰も触らなければ、今の位置から最初のページへ巻き戻す（展示用）
     void CheckIdleReturn()
     {
+        // しばらく誰も触らなければ、ミュートだけ始めの状態に戻す（待機中にミュートを解除されたままにならないように）
+        if (!cranking && !editMode && idleMuteResetSec > 0f && initialMutes != null &&
+            Time.unscaledTime - lastInputTime >= idleMuteResetSec)
+        {
+            bool changed = false;
+            for (int s = 0; s < stems.Count; s++)
+                if (stems[s].mute != initialMutes[s]) { stems[s].mute = initialMutes[s]; changed = true; }
+            if (changed) Debug.Log("操作がないので、ミュートを始めの状態に戻しました。");
+        }
+
         if (cranking || editMode || debugHold || idleReturnSec <= 0f) return;
         if (Time.unscaledTime - lastInputTime < idleReturnSec) return;
         bool mutesChanged = false;
@@ -1605,6 +2039,7 @@ public class PoemPagePlayer : MonoBehaviour
             lastInputTime = Time.unscaledTime;
 
         if (kb != null && kb.f1Key.wasPressedThisFrame) showDebugPanel = !showDebugPanel;
+        if (kb != null && kb.f2Key.wasPressedThisFrame) showAudioDebug = !showAudioDebug;
         if (edit) SetEditMode(!editMode);
         // ページボタンは、押した直後の0.35秒は受け付けない（スティックを回している間に、1回の押しが2回に数えられることがあるため）
         if ((next || prev) && Time.unscaledTime - lastPageButtonTime < 0.35f) { next = false; prev = false; }
@@ -2285,6 +2720,25 @@ public class PoemPagePlayer : MonoBehaviour
         bgImg.color = paperColor;
         bgImg.raycastTarget = false;
 
+        // 水彩の色：紙のすぐ上、歌詞や波形の下に重ねる
+        var washShader = Shader.Find("Hidden/WatercolorWash");
+        if (washShader != null)
+        {
+            var wrt = Place("Wash", root, 0f, 0f, 0f, 0f);
+            wrt.anchorMin = Vector2.zero;
+            wrt.anchorMax = Vector2.one;
+            wrt.offsetMin = wrt.offsetMax = Vector2.zero;
+            washImg = wrt.gameObject.AddComponent<RawImage>();
+            washImg.raycastTarget = false;
+            washMat = new Material(washShader);
+            washImg.material = washMat;
+            washImg.enabled = false;
+            washCur = washColor;
+        }
+        else if (washEnabled) Debug.LogWarning("WatercolorWash.shader が見つからないので、水彩の色はオフになります。Assets に入れてください。");
+
+        BuildUIParts(root);
+
         lyricImg = Place("Lyric", root, LyricX, LyricY, LyricW, LyricH).gameObject.AddComponent<RawImage>();
         lyricImg.raycastTarget = false;
         var blurShader = Shader.Find("Hidden/LyricBlur");
@@ -2446,6 +2900,14 @@ public class PoemPagePlayer : MonoBehaviour
 
     void UpdateVisuals(double now)
     {
+        UpdateWash();
+        UpdateUIParts(now);
+        // 確認用の文字は、まとめて表示・非表示（設定モード中はページ番号だけ出す）
+        pageText.enabled = (showAudioDebug && showPageNumber) || editMode;
+        pendingText.enabled = showAudioDebug;
+        crankText.enabled = showAudioDebug;
+        debugText.enabled = showAudioDebug;
+
         for (int s = 0; s < stems.Count; s++)
         {
             if (!rowVisible[shownPage, s]) continue;
@@ -2474,9 +2936,13 @@ public class PoemPagePlayer : MonoBehaviour
                 double dev = Math.Abs(crankRate / natural - 1.0);
                 target = Mathf.Clamp01((float)(dev / Math.Max(0.01, blurAtDeviation)));
             }
+            // 歌詞の段（メロディ）をミュートしているときは、歌詞がぼける
+            int ls = FindStem(lyricStemName);
+            bool lyricMuted = ls >= 0 && stems[ls].mute;
+            if (lyricMuted) target = 1f;
             lyricBlur = Mathf.Lerp(lyricBlur, target, 1f - Mathf.Exp(-focusSpeed * Time.unscaledDeltaTime));
             if (lyricMat != null) lyricMat.SetFloat("_Blur", lyricBlur);
-            lyricImg.color = new Color(1f, 1f, 1f, Mathf.Lerp(1f, 0.75f, lyricBlur));
+            lyricImg.color = new Color(1f, 1f, 1f, Mathf.Lerp(1f, lyricMuted ? 0.5f : 0.75f, lyricBlur));
         }
 
         if (cranking && atEnd && !rewinding)
